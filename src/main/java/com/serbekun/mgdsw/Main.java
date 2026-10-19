@@ -1,6 +1,7 @@
 package com.serbekun.mgdsw;
 
 import com.serbekun.mgdsw.services.resources.ResourcesService;
+import com.serbekun.mgdsw.http.InitHttp;
 import com.serbekun.mgdsw.resources.ResourcesCache;
 import com.serbekun.mgdsw.resources.ResourcesLoader;
 
@@ -20,5 +21,7 @@ public final class Main {
         ResourcesCache resourcesCache = new ResourcesCache(resourcesLoader);
         ResourcesService resourcesService = new ResourcesService(resourcesCache);
 
+        InitHttp initHttp = new InitHttp();
+        initHttp.init();
     }
 }
