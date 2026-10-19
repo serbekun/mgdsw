@@ -1,0 +1,11 @@
+# CODEOWNERS — https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Владелец всего репозитория. GitHub автоматически запрашивает ревью у владельца,
+# когда PR открывает кто-то другой. Свой собственный PR автор не ревьюит.
+#
+# Требование "Require review from Code Owners" в ruleset ВЫКЛЮЧЕНО специально:
+# serbekun не может одобрить собственный PR, и такое требование заблокировало бы
+# все его PR навсегда. Обязательное ревью (1 approval) настраивается в ruleset
+# main-protection и обходится владельцем через bypass.
+
+* @serbekun
