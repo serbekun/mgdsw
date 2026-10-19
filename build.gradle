@@ -17,6 +17,22 @@ repositories {
     mavenCentral()
 }
 
+def generatedResourcesDir = layout.buildDirectory.dir('generated-resources')
+
+tasks.register('generateVersionProperties') {
+    def outputDir = generatedResourcesDir
+    def projectVersion = project.version.toString()
+    inputs.property('version', projectVersion)
+    outputs.dir(outputDir)
+    doLast {
+        def file = outputDir.get().file('com/serbekun/mgdsw/version.properties').asFile
+        file.parentFile.mkdirs()
+        file.text = "version=${projectVersion}\n"
+    }
+}
+
+sourceSets.main.output.dir(generatedResourcesDir, builtBy: 'generateVersionProperties')
+
 dependencies {
     testImplementation platform('org.junit:junit-bom:6.1.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
