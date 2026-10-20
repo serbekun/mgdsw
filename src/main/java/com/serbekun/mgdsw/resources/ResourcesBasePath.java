@@ -7,7 +7,6 @@ public enum ResourcesBasePath {
     JS("js/"),
     IMAGES("images/"),
     VIDEO("video/"),
-    PDF("pdf/"),
     PARTIALS("html/partials/");
 
     private final String basePath;
