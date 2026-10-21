@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,16 +35,6 @@ public class ResourcesUnpacker {
 
     /** Marker file, relative to the disk root, recording the unpacked version. */
     public static final String MARKER_FILE = ".unpacked";
-
-    /** Template directories copied out of the JAR. */
-    private static final List<String> TEMPLATE_DIRS =
-            List.of("css/", "js/", "html/", "images/", "pdf/");
-
-    /**
-     * Directories created on disk even when the JAR ships nothing for them, so a fork can
-     * drop files in immediately.
-     */
-    private static final List<String> EMPTY_DIRS = List.of("pdf/");
 
     private final ResourcesLoader loader;
     private final String version;
@@ -83,15 +72,14 @@ public class ResourcesUnpacker {
         int copied = 0;
         try {
             Files.createDirectories(root);
-            for (String dir : TEMPLATE_DIRS) {
-                copied += copyDirectory(root, dir);
+            for (ResourcesBasePath dir : ResourcesBasePath.directoriesToCreate()) {
+                Files.createDirectories(root.resolve(dir.getBasePath()).normalize());
             }
-            for (String dir : EMPTY_DIRS) {
-                Files.createDirectories(root.resolve(dir).normalize());
+            for (ResourcesBasePath dir : ResourcesBasePath.packagedDirectories()) {
+                copied += copyDirectory(root, dir.getBasePath());
             }
             Files.writeString(marker, version + System.lineSeparator(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            // The server cannot serve what it could not unpack, so this is fatal.
             throw new IllegalStateException(
                     "Failed to unpack template resources into " + root, e);
         }

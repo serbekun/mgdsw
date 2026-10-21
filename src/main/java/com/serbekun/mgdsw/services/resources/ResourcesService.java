@@ -136,16 +136,6 @@ public class ResourcesService {
     }
 
     /**
-     * Returns the binary data for a PDF resource.
-     *
-     * @param name the name of the PDF resource
-     * @return the binary data, or null if the name is empty or the file is missing
-     */
-    public byte[] getPdf(String name) {
-        return getBytes(ResourcesBasePath.PDF, name);
-    }
-
-    /**
      * Returns the text of a template partial.
      * <p>
      * Partials are build-time template fragments. They are never served over HTTP and
