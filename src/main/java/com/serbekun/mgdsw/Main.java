@@ -1,10 +1,14 @@
 package com.serbekun.mgdsw;
 
 import com.serbekun.mgdsw.services.resources.ResourcesService;
+import com.serbekun.mgdsw.config.ConfigContext;
+import com.serbekun.mgdsw.config.ConfigLoader;
 import com.serbekun.mgdsw.http.InitHttp;
 import com.serbekun.mgdsw.resources.ResourcesCache;
 import com.serbekun.mgdsw.resources.ResourcesLoader;
 import com.serbekun.mgdsw.resources.ResourcesUnpacker;
+
+import java.nio.file.Path;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +30,11 @@ public final class Main {
         ResourcesUnpacker resourcesUnpacker = new ResourcesUnpacker(resourcesLoader, BuildInfo.version());
         resourcesUnpacker.unpack();
 
-        InitHttp initHttp = new InitHttp();
-        initHttp.init();
+        // Create config objects
+        Path configFilePath = Path.of(System.getenv("MGDSW_CONFIG"));
+        ConfigContext config = new ConfigLoader().load(configFilePath);
+
+        InitHttp http = new InitHttp(config.http());
+        http.init();
     }
 }
