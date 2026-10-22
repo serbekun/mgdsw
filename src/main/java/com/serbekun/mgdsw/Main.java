@@ -4,6 +4,7 @@ import com.serbekun.mgdsw.services.resources.ResourcesService;
 import com.serbekun.mgdsw.http.InitHttp;
 import com.serbekun.mgdsw.resources.ResourcesCache;
 import com.serbekun.mgdsw.resources.ResourcesLoader;
+import com.serbekun.mgdsw.resources.ResourcesUnpacker;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,10 @@ public final class Main {
         ResourcesLoader resourcesLoader = new ResourcesLoader();
         ResourcesCache resourcesCache = new ResourcesCache(resourcesLoader);
         ResourcesService resourcesService = new ResourcesService(resourcesCache);
+
+        // Create unpacker and unpack resources.
+        ResourcesUnpacker resourcesUnpacker = new ResourcesUnpacker(resourcesLoader, BuildInfo.version());
+        resourcesUnpacker.unpack();
 
         InitHttp initHttp = new InitHttp();
         initHttp.init();
