@@ -36,7 +36,10 @@ public enum ResourcesBasePath {
     PARTIALS("html/partials/", UnpackPolicy.PACKAGED),
 
     /** Minecraft map ZIP archives shared from the Maxim Games Discord server. */
-    MINECRAFT_MAPS_ZIPS("zip/minecraft_maps_zips/", UnpackPolicy.PACKAGED);
+    MINECRAFT_MAPS_ZIPS("zip/minecraft_maps_zips/", UnpackPolicy.PACKAGED),
+
+    /** Minecraft map YAML where will be saved map metadata. */
+    MINECRAFT_MAPS_YAML("yaml/minecraft_maps_yamls", UnpackPolicy.PACKAGED);
 
     private final String basePath;
     private final UnpackPolicy policy;
