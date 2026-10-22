@@ -31,8 +31,21 @@ public final class Main {
         resourcesUnpacker.unpack();
 
         // Create config objects
-        Path configFilePath = Path.of(System.getenv("MGDSW_CONFIG"));
-        ConfigContext config = new ConfigLoader().load(configFilePath);
+        ConfigContext config = null;
+
+        ConfigLoader configLoader = new ConfigLoader();
+
+        String configFilePath = System.getenv("MGDSW_CONFIG");
+        if (configFilePath == null) {
+            config = configLoader.loadDefault();
+        } else {
+            Path configFilePathOf = Path.of(configFilePath);
+            config = configLoader.load(configFilePathOf);
+        } 
+        
+
+
+    
 
         InitHttp http = new InitHttp(config.http());
         http.init();

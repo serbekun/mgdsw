@@ -3,7 +3,11 @@ package com.serbekun.mgdsw.config;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.serbekun.mgdsw.Main;
 import com.serbekun.mgdsw.config.configs.ConfigHttpInit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,8 +42,11 @@ import java.nio.file.Path;
  */
 public class ConfigLoader {
 
+    private static final Logger log = LoggerFactory.getLogger(ConfigLoader.class);
+
+
     /** Fallback config inside the classpath ({@code src/main/resources/config/config.default.yaml}). */
-    private static final String DEFAULT_RESOURCE = "config/default_config.yaml";
+    private static final String DEFAULT_RESOURCE = "config/config.default.yaml";
 
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory())
             // A missing field is an error, not a silent port = 0
@@ -58,6 +65,11 @@ public class ConfigLoader {
      *                               or if neither a disk file nor a classpath resource is present
      */
     public ConfigContext load(Path path) {
+        if (path == null) {
+            log.info("ENV \"MGDSW_CONFIG\" not exported using default");
+            return loadDefault();
+        }
+        
         if (Files.exists(path)) {
             try (InputStream in = Files.newInputStream(path)) {
                 return parse(in, path.toString());
@@ -69,7 +81,7 @@ public class ConfigLoader {
     }
 
     /** Loads the fallback config from the classpath. */
-    private ConfigContext loadDefault() {
+    public ConfigContext loadDefault() {
         try (InputStream in = ConfigLoader.class.getClassLoader().getResourceAsStream(DEFAULT_RESOURCE)) {
             if (in == null) {
                 throw new IllegalStateException(
