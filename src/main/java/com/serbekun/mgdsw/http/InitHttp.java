@@ -2,6 +2,7 @@ package com.serbekun.mgdsw.http;
 
 import java.util.List;
 
+import com.serbekun.mgdsw.config.configs.ConfigHttpInit;
 import com.serbekun.mgdsw.http.handles.ApiV0Health;
 
 import io.javalin.Javalin;
@@ -29,8 +30,7 @@ import org.slf4j.LoggerFactory;
  */
 public class InitHttp {
 
-    /** Port on which the embedded HTTP server listens. */
-    private static final int HTTP_PORT = 7070;
+    private final ConfigHttpInit configHttpInit;
 
     /** Logger for this class. */
     private static final Logger log = LoggerFactory.getLogger(InitHttp.class);
@@ -42,7 +42,9 @@ public class InitHttp {
     private Javalin server;
 
     /** Creates a new {@code InitHttp} instance. Does not start the server; call {@link #init()} for that. */
-    public InitHttp() {}
+    public InitHttp(ConfigHttpInit configHttpInit) {
+        this.configHttpInit = configHttpInit;
+    }
 
     /**
      * Initializes the handler list and starts the embedded Javalin HTTP server
@@ -69,7 +71,7 @@ public class InitHttp {
         Thread httpServerThread = new Thread(() -> {
             server = Javalin.create(config -> {
                 handlers.forEach(handler -> handler.register(config));
-            }).start(HTTP_PORT);
+            }).start(configHttpInit.port());
         }, "http-server-thread");
 
         log.info("Start http server thread");
