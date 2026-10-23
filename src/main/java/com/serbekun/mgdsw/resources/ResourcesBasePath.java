@@ -116,10 +116,4 @@ public enum ResourcesBasePath {
         }
         return basePath + name;
     }
-
-    /** Whether resources of a given type are packaged in the JAR or disk-only. */
-    private enum UnpackPolicy {
-        PACKAGED,
-        DISK_ONLY
-    }
 }
