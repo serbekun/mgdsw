@@ -16,8 +16,18 @@ import java.util.List;
  * Misses are cached too: a bot scanning for files that do not exist must not
  * reach disk and classloader on every request.
  * </p>
+ * <p>
+ * Callers can override the cache policy per lookup. Resources whose directory
+ * policy is {@link CachePolicy#DISABLE_CACHE} are loaded fresh on every access
+ * and are never stored. Independently of the policy, resources larger than
+ * {@link #DEFAULT_MAX_CACHEABLE_SIZE} are returned but not cached, so a large
+ * archive cannot retain its bytes in memory forever.
+ * </p>
  */
 public class ResourcesCache {
+
+    /** Default upper bound (100 MiB) for a resource to be eligible for caching. */
+    public static final long DEFAULT_MAX_CACHEABLE_SIZE = 100L * 1024 * 1024;
 
     /**
      * A cached resource: its bytes and the ETag computed once at load time.
@@ -32,36 +42,91 @@ public class ResourcesCache {
     private static final Entry MISSING = new Entry(null, null);
 
     private final ResourcesLoader loader;
+    private final long maxCacheableSize;
     private final ConcurrentMap<String, Entry> cache = new ConcurrentHashMap<>();
 
     /**
-     * Creates a new ResourceCache with the given ResourceLoader.
+     * Creates a new ResourceCache with the given ResourceLoader and the default
+     * size limit of {@link #DEFAULT_MAX_CACHEABLE_SIZE}.
      *
      * @param loader the resource loader to use
      */
     public ResourcesCache(ResourcesLoader loader) {
-        this.loader = loader;
+        this(loader, DEFAULT_MAX_CACHEABLE_SIZE);
     }
 
     /**
-     * Gets a resource entry from cache, loading it lazily if not present.
+     * Creates a new ResourceCache with the given ResourceLoader and size limit.
+     *
+     * @param loader             the resource loader to use
+     * @param maxCacheableSize   maximum resource size in bytes that may be
+     *                           cached; larger resources are served but not
+     *                           retained
+     * @throws IllegalArgumentException if {@code maxCacheableSize} is negative
+     */
+    public ResourcesCache(ResourcesLoader loader, long maxCacheableSize) {
+        if (maxCacheableSize < 0) {
+            throw new IllegalArgumentException("maxCacheableSize must not be negative");
+        }
+        this.loader = loader;
+        this.maxCacheableSize = maxCacheableSize;
+    }
+
+    /**
+     * Gets a resource entry, caching it subject to the default cache policy.
      *
      * @param path the path to the resource
      * @return the cached entry, or null if the resource does not exist
      */
     public Entry get(String path) {
-        Entry cached = cache.get(path);
-        if (cached != null) {
-            return cached == MISSING ? null : cached;
+        return get(path, CachePolicy.CACHE);
+    }
+
+    /**
+     * Gets a resource entry, honouring the given cache policy and the size limit.
+     *
+     * @param path   the path to the resource
+     * @param policy whether the resource may be cached
+     * @return the entry, or null if the resource does not exist
+     */
+    public Entry get(String path, CachePolicy policy) {
+        boolean cacheable = policy == CachePolicy.CACHE;
+
+        if (cacheable) {
+            Entry cached = cache.get(path);
+            if (cached != null) {
+                return cached == MISSING ? null : cached;
+            }
         }
 
         // Loading happens outside computeIfAbsent so blocking I/O never runs
         // while a ConcurrentHashMap bin is locked.
         byte[] data = loader.loadBinary(path);
-        Entry entry = data != null ? new Entry(data, Etags.of(data)) : MISSING;
-        cache.put(path, entry);
 
-        return data != null ? entry : null;
+        if (data == null) {
+            if (cacheable) {
+                cache.put(path, MISSING);
+            }
+            return null;
+        }
+
+        Entry entry = new Entry(data, Etags.of(data));
+        if (cacheable && data.length <= maxCacheableSize) {
+            cache.put(path, entry);
+        }
+        return entry;
+    }
+
+    /**
+     * Gets binary data, honouring the given cache policy.
+     *
+     * @param path   the path to the resource
+     * @param policy whether the resource may be cached
+     * @return byte array or null if not found
+     */
+    public byte[] getBinary(String path, CachePolicy policy) {
+        Entry entry = get(path, policy);
+        return entry != null ? entry.data() : null;
     }
 
     /**
@@ -71,8 +136,19 @@ public class ResourcesCache {
      * @return byte array or null if not found
      */
     public byte[] getBinary(String path) {
-        Entry entry = get(path);
-        return entry != null ? entry.data() : null;
+        return getBinary(path, CachePolicy.CACHE);
+    }
+
+    /**
+     * Gets the resource decoded as UTF-8 text, honouring the given cache policy.
+     *
+     * @param path   the path to the resource
+     * @param policy whether the resource may be cached
+     * @return string or null if not found
+     */
+    public String getText(String path, CachePolicy policy) {
+        byte[] data = getBinary(path, policy);
+        return data != null ? new String(data, StandardCharsets.UTF_8) : null;
     }
 
     /**
@@ -82,8 +158,16 @@ public class ResourcesCache {
      * @return string or null if not found
      */
     public String getText(String path) {
-        byte[] data = getBinary(path);
-        return data != null ? new String(data, StandardCharsets.UTF_8) : null;
+        return getText(path, CachePolicy.CACHE);
+    }
+
+    /**
+     * The maximum resource size in bytes that may be cached.
+     *
+     * @return the size limit
+     */
+    public long maxCacheableSize() {
+        return maxCacheableSize;
     }
 
     /**
