@@ -1,7 +1,6 @@
 package com.serbekun.mgdsw.config;
 
-import com.serbekun.mgdsw.config.configs.ConfigHttpInit;
-
+import com.serbekun.mgdsw.config.configs.*;
 
 /**
  * Aggregate holder for every configuration section of the application.
@@ -26,6 +25,6 @@ import com.serbekun.mgdsw.config.configs.ConfigHttpInit;
  *
  * @see ConfigLoader
  * @see ConfigHttpInit
+ * @see ConfigResources
  */
-public record ConfigContext(ConfigHttpInit http) {
-}
+public record ConfigContext(ConfigHttpInit http, ConfigResources configResources) {}

@@ -1,2 +1,4 @@
 http:
   port: 8080
+resources:
+  maxCacheableSize: 104857600
