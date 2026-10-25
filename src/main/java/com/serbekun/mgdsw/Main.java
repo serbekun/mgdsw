@@ -27,7 +27,7 @@ public final class Main {
 
         ConfigLoader configLoader = new ConfigLoader();
 
-        String configFilePath = System.getenv("MGDSW_CONFIG");
+        String configFilePath = System.getenv(Envs.MGDSW_CONFIG.name());
         if (configFilePath == null) {
             config = configLoader.loadDefault();
         } else {
