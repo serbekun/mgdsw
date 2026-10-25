@@ -48,9 +48,20 @@ public enum Envs {
      */
     MGDSW_CONFIG("MGDSW_CONFIG");
 
-    /** Valid environment variable name: a letter or underscore followed by letters, digits or underscores. */
-    private static final Pattern ENV_NAME_PATTERN =
-            Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+    /**
+     * Holder for the name pattern.
+     *
+     * <p>The pattern cannot be a plain static field of {@link Envs}: enum
+     * constants are initialized before static fields declared after them, so
+     * the constructor would see a {@code null} pattern during class
+     * initialization. A nested holder is initialized lazily on first use,
+     * independently of enum constant order.
+     */
+    private static final class EnvNamePattern {
+        /** Valid environment variable name: a letter or underscore followed by letters, digits or underscores. */
+        private static final Pattern INSTANCE =
+                Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+    }
 
     /** Raw name of the environment variable as seen by the operating system. */
     private final String name;
@@ -114,6 +125,6 @@ public enum Envs {
      * @return {@code true} if the name is valid, {@code false} otherwise
      */
     public static boolean isValidEnvName(String name) {
-        return name != null && ENV_NAME_PATTERN.matcher(name).matches();
+        return name != null && EnvNamePattern.INSTANCE.matcher(name).matches();
     }
 }
