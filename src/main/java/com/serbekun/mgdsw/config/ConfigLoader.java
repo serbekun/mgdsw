@@ -1,10 +1,11 @@
 package com.serbekun.mgdsw.config;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.serbekun.mgdsw.Main;
 import com.serbekun.mgdsw.config.configs.ConfigHttpInit;
+import com.serbekun.mgdsw.config.configs.ConfigResources;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +45,6 @@ public class ConfigLoader {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigLoader.class);
 
-
     /** Fallback config inside the classpath ({@code src/main/resources/config/config.default.yaml}). */
     private static final String DEFAULT_RESOURCE = "config/config.default.yaml";
 
@@ -53,7 +53,9 @@ public class ConfigLoader {
             .enable(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES);
 
     /** Structure of the YAML file. Section keys map to the names of the record components. */
-    record RawConfig(ConfigHttpInit http) {}
+    record RawConfig(
+        @JsonProperty("http") ConfigHttpInit configHttpInit,
+        @JsonProperty("resources") ConfigResources configResources) {}
 
     /**
      * Loads the config: first from disk at the given path, and if the file is
@@ -96,9 +98,9 @@ public class ConfigLoader {
     /** Parses the YAML stream into a {@link ConfigContext}, validating required sections. */
     private ConfigContext parse(InputStream in, String source) throws IOException {
         RawConfig raw = MAPPER.readValue(in, RawConfig.class);
-        if (raw == null || raw.http() == null) {
+        if (raw == null || raw.configHttpInit == null) {
             throw new IllegalStateException("Section 'http' is missing in " + source);
         }
-        return new ConfigContext(raw.http());
+        return new ConfigContext(raw.configHttpInit(), raw.configResources());
     }
 }
