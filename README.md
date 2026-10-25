@@ -1,5 +1,9 @@
 # mgdsw
 
+<div align="center">
+  <img src="assets/serbekunmgdsw.png" alt="mgdsw baner" width="300">
+</div>
+
 Maxim Games Discord Server Web Site. This will be a server for deploying a web server dedicated to the Discord server created by Maxim.
 
 ## What problems does this server solve?
