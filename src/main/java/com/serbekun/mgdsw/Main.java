@@ -21,16 +21,8 @@ public final class Main {
 
         log.info("mgdsw" + BuildInfo.version());
 
-        // Create ResourceService
-        ResourcesLoader resourcesLoader = new ResourcesLoader();
-        ResourcesCache resourcesCache = new ResourcesCache(resourcesLoader);
-        ResourcesService resourcesService = new ResourcesService(resourcesCache);
-
-        // Create unpacker and unpack resources.
-        ResourcesUnpacker resourcesUnpacker = new ResourcesUnpacker(resourcesLoader, BuildInfo.version());
-        resourcesUnpacker.unpack();
-
         // Create config objects
+        log.info("starting init config.");
         ConfigContext config = null;
 
         ConfigLoader configLoader = new ConfigLoader();
@@ -41,12 +33,20 @@ public final class Main {
         } else {
             Path configFilePathOf = Path.of(configFilePath);
             config = configLoader.load(configFilePathOf);
-        } 
-        
+        }
 
+        // Create ResourceService
+        log.info("starting resource mod.");
+        ResourcesLoader resourcesLoader = new ResourcesLoader();
+        ResourcesCache resourcesCache = new ResourcesCache(resourcesLoader, config.configResources().maxCacheableSize());
+        ResourcesService resourcesService = new ResourcesService(resourcesCache);
 
-    
+        // Create unpacker and unpack resources.
+        ResourcesUnpacker resourcesUnpacker = new ResourcesUnpacker(resourcesLoader, BuildInfo.version());
+        resourcesUnpacker.unpack();
 
+        // init http layer
+        log.info("starting init http layer.");
         InitHttp http = new InitHttp(config.http());
         http.init();
     }

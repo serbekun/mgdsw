@@ -3,6 +3,8 @@ package com.serbekun.mgdsw.resources;
 import java.util.Arrays;
 import java.util.List;
 
+import com.serbekun.mgdsw.services.resources.ResourcesService;
+
 /**
  * Single source of truth for static resource directory paths.
  * <p>
@@ -21,28 +23,29 @@ import java.util.List;
 public enum ResourcesBasePath {
 
     /** Frontend static files (templates that exist inside the JAR). */
-    HTML("html/", UnpackPolicy.PACKAGED),
+    HTML("html/", UnpackPolicy.PACKAGED, CachePolicy.CACHE),
 
     /** Stylesheets packaged with the application. */
-    CSS("css/", UnpackPolicy.PACKAGED),
+    CSS("css/", UnpackPolicy.PACKAGED, CachePolicy.CACHE),
 
     /** JavaScript files packaged with the application. */
-    JS("js/", UnpackPolicy.PACKAGED),
+    JS("js/", UnpackPolicy.PACKAGED, CachePolicy.CACHE),
 
     /** Image assets packaged with the application. */
-    IMAGES("images/", UnpackPolicy.PACKAGED),
+    IMAGES("images/", UnpackPolicy.PACKAGED, CachePolicy.CACHE),
 
     /** HTML template partials packaged with the application. */
-    PARTIALS("html/partials/", UnpackPolicy.PACKAGED),
+    PARTIALS("html/partials/", UnpackPolicy.PACKAGED, CachePolicy.CACHE),
 
     /** Minecraft map ZIP archives shared from the Maxim Games Discord server. */
-    MINECRAFT_MAPS_ZIPS("zip/minecraft_maps_zips/", UnpackPolicy.DISK_ONLY),
+    MINECRAFT_MAPS_ZIPS("zip/minecraft_maps_zips/", UnpackPolicy.DISK_ONLY, CachePolicy.DISABLE_CACHE),
 
     /** Minecraft map YAML where will be saved map metadata. */
-    MINECRAFT_MAPS_YAML("yaml/minecraft_maps_yamls", UnpackPolicy.DISK_ONLY);
+    MINECRAFT_MAPS_YAML("yaml/minecraft_maps_yamls", UnpackPolicy.DISK_ONLY, CachePolicy.DISABLE_CACHE);
 
     private final String basePath;
-    private final UnpackPolicy policy;
+    private final UnpackPolicy unpackPolicy;
+    private final CachePolicy cachePolicy;
 
     /**
      * Creates a new resource base path entry.
@@ -52,9 +55,10 @@ public enum ResourcesBasePath {
      * @param policy   whether the directory's contents are packaged in the JAR
      *                 or exist only on disk
      */
-    ResourcesBasePath(String basePath, UnpackPolicy policy) {
+    ResourcesBasePath(String basePath, UnpackPolicy UnpackPolicy, CachePolicy cachePolicy) {
         this.basePath = basePath.endsWith("/") ? basePath : basePath + "/";
-        this.policy = policy;
+        this.unpackPolicy = UnpackPolicy;
+        this.cachePolicy = cachePolicy;
     }
 
     /** The directory path this entry represents, always ending with {@code '/'}.
@@ -71,7 +75,25 @@ public enum ResourcesBasePath {
      * @return {@code true} if packaged, {@code false} if disk-only
      */
     public boolean isPackaged() {
-        return policy == UnpackPolicy.PACKAGED;
+        return unpackPolicy == UnpackPolicy.PACKAGED;
+    }
+
+    /**
+     * The cache policy for this directory's resources.
+     *
+     * @return the cache policy
+     */
+    public CachePolicy getCachePolicy() {
+        return cachePolicy;
+    }
+
+    /**
+     * Whether this directory's resources are cached in the {@link ResourcesCache}.
+     *
+     * @return {@code true} if cached, {@code false} if cache is disabled
+     */
+    public boolean isCached() {
+        return cachePolicy == CachePolicy.CACHE;
     }
 
     /**

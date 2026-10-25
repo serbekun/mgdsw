@@ -59,7 +59,7 @@ public class ResourcesService {
         }
 
         String path = basePath.resolve(name);
-        ResourcesCache.Entry entry = cache.get(path);
+        ResourcesCache.Entry entry = cache.get(path, basePath.getCachePolicy());
         if (entry == null) {
             return null;
         }
@@ -192,7 +192,7 @@ public class ResourcesService {
         if (name == null || name.isEmpty()) {
             return null;
         }
-        return cache.getText(basePath.resolve(name));
+        return cache.getText(basePath.resolve(name), basePath.getCachePolicy());
     }
 
     /**
@@ -206,7 +206,7 @@ public class ResourcesService {
         if (name == null || name.isEmpty()) {
             return null;
         }
-        return cache.getBinary(basePath.resolve(name));
+        return cache.getBinary(basePath.resolve(name), basePath.getCachePolicy());
     }
 
     /**
