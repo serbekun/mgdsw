@@ -23,29 +23,30 @@ import com.serbekun.mgdsw.services.resources.ResourcesService;
 public enum ResourcesBasePath {
 
     /** Frontend static files (templates that exist inside the JAR). */
-    HTML("html/", UnpackPolicy.PACKAGED, CachePolicy.CACHE),
+    HTML("html/", UnpackPolicy.PACKAGED, CachePolicy.CACHE, ResourceType.STATIC),
 
     /** Stylesheets packaged with the application. */
-    CSS("css/", UnpackPolicy.PACKAGED, CachePolicy.CACHE),
+    CSS("css/", UnpackPolicy.PACKAGED, CachePolicy.CACHE, ResourceType.STATIC),
 
     /** JavaScript files packaged with the application. */
-    JS("js/", UnpackPolicy.PACKAGED, CachePolicy.CACHE),
+    JS("js/", UnpackPolicy.PACKAGED, CachePolicy.CACHE, ResourceType.STATIC),
 
     /** Image assets packaged with the application. */
-    IMAGES("images/", UnpackPolicy.PACKAGED, CachePolicy.CACHE),
+    IMAGES("images/", UnpackPolicy.PACKAGED, CachePolicy.CACHE, ResourceType.STATIC),
 
     /** HTML template partials packaged with the application. */
-    PARTIALS("html/partials/", UnpackPolicy.PACKAGED, CachePolicy.CACHE),
+    PARTIALS("html/partials/", UnpackPolicy.PACKAGED, CachePolicy.CACHE, ResourceType.STATIC),
 
     /** Minecraft map ZIP archives shared from the Maxim Games Discord server. */
-    MINECRAFT_MAPS_ZIPS("zip/minecraft_maps_zips/", UnpackPolicy.DISK_ONLY, CachePolicy.DISABLE_CACHE),
+    MINECRAFT_MAPS_ZIPS("minecraft_maps_zips/", UnpackPolicy.DISK_ONLY, CachePolicy.DISABLE_CACHE,  ResourceType.SHARED),
 
     /** Minecraft map YAML where will be saved map metadata. */
-    MINECRAFT_MAPS_YAML("yaml/minecraft_maps_yamls", UnpackPolicy.DISK_ONLY, CachePolicy.DISABLE_CACHE);
+    MINECRAFT_MAPS_YAML("minecraft_maps", UnpackPolicy.DISK_ONLY, CachePolicy.DISABLE_CACHE, ResourceType.CONTENT);
 
     private final String basePath;
     private final UnpackPolicy unpackPolicy;
     private final CachePolicy cachePolicy;
+    private final ResourceType resourceType;
 
     /**
      * Creates a new resource base path entry.
@@ -55,10 +56,11 @@ public enum ResourcesBasePath {
      * @param policy   whether the directory's contents are packaged in the JAR
      *                 or exist only on disk
      */
-    ResourcesBasePath(String basePath, UnpackPolicy UnpackPolicy, CachePolicy cachePolicy) {
+    ResourcesBasePath(String basePath, UnpackPolicy UnpackPolicy, CachePolicy cachePolicy, ResourceType resourceType) {
         this.basePath = basePath.endsWith("/") ? basePath : basePath + "/";
         this.unpackPolicy = UnpackPolicy;
         this.cachePolicy = cachePolicy;
+        this.resourceType = resourceType;
     }
 
     /** The directory path this entry represents, always ending with {@code '/'}.
@@ -85,6 +87,10 @@ public enum ResourcesBasePath {
      */
     public CachePolicy getCachePolicy() {
         return cachePolicy;
+    }
+
+    public ResourceType getResourceType() {
+        return resourceType;
     }
 
     /**

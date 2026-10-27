@@ -1,28 +1,39 @@
 package com.serbekun.mgdsw.resources;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.List;
 
 /**
- * Thread-safe cache layer for resources.
- * <p>
- * Only bytes are cached — the server answers with bytes, so keeping a decoded
+ * Thread-safe cache layer for resources, keyed by {@link ResourceType} and path.
+ *
+ * <p>The resource type is part of the contract, not just metadata:
+ *
+ * <ul>
+ *   <li>{@link ResourceType#STATIC} is read from the static root with the usual
+ *       classpath fallback and may be cached;</li>
+ *   <li>{@link ResourceType#CONTENT} is never served by this class. Content is
+ *       configuration data owned by its own services, not an HTTP resource.</li>
+ *   <li>{@link ResourceType#SHARED} is read from the shared root and is
+ *       <strong>never cached</strong>, even when the caller asks for
+ *       {@link CachePolicy#CACHE}. Shared files are large and are served by
+ *       nginx, so retaining their bytes in the JVM heap would be a bug.</li>
+ * </ul>
+ *
+ * <p>Only bytes are cached — the server answers with bytes, so keeping a decoded
  * copy would both duplicate memory and re-encode on every response. Text is
  * decoded on demand, always as UTF-8.
- * </p>
- * <p>
- * Misses are cached too: a bot scanning for files that do not exist must not
- * reach disk and classloader on every request.
- * </p>
- * <p>
- * Callers can override the cache policy per lookup. Resources whose directory
- * policy is {@link CachePolicy#DISABLE_CACHE} are loaded fresh on every access
- * and are never stored. Independently of the policy, resources larger than
- * {@link #DEFAULT_MAX_CACHEABLE_SIZE} are returned but not cached, so a large
- * archive cannot retain its bytes in memory forever.
- * </p>
+ *
+ * <p>Misses are cached too (for cacheable types): a bot scanning for files that
+ * do not exist must not reach disk and classloader on every request.
+ *
+ * <p>Independently of the policy, resources larger than
+ * {@link #maxCacheableSize()} are returned but not cached, so a large file
+ * cannot retain its bytes in memory forever.
  */
 public class ResourcesCache {
 
@@ -30,70 +41,100 @@ public class ResourcesCache {
     public static final long DEFAULT_MAX_CACHEABLE_SIZE = 100L * 1024 * 1024;
 
     /**
-     * A cached resource: its bytes and the ETag computed once at load time.
-     * The array is shared with every caller and must not be modified.
+     * A loaded resource: its bytes and, for cacheable types, the ETag computed
+     * once at load time. The array is shared with every caller and must not be
+     * modified.
      *
      * @param data the resource bytes
-     * @param etag the quoted ETag value for these bytes
+     * @param etag the quoted ETag value, or {@code null} for {@link ResourceType#SHARED}
+     *             entries, which are never cached and never hashed
      */
     public record Entry(byte[] data, String etag) {}
 
     /** Marker stored for paths that are known not to exist. */
     private static final Entry MISSING = new Entry(null, null);
 
-    private final ResourcesLoader loader;
+    private final Map<ResourceType, ResourcesLoader> loaders;
     private final long maxCacheableSize;
-    private final ConcurrentMap<String, Entry> cache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Key, Entry> cache = new ConcurrentHashMap<>();
+
+    /** Cache key that keeps equal relative paths in different roots apart. */
+    private record Key(ResourceType type, String path) {}
 
     /**
-     * Creates a new ResourceCache with the given ResourceLoader and the default
-     * size limit of {@link #DEFAULT_MAX_CACHEABLE_SIZE}.
+     * Creates a cache with an explicit root per served resource type.
      *
-     * @param loader the resource loader to use
-     */
-    public ResourcesCache(ResourcesLoader loader) {
-        this(loader, DEFAULT_MAX_CACHEABLE_SIZE);
-    }
-
-    /**
-     * Creates a new ResourceCache with the given ResourceLoader and size limit.
+     * <p>A {@link ResourceType#STATIC} root is required. A
+     * {@link ResourceType#SHARED} root is optional: when it is absent, shared
+     * lookups fail with a clear error instead of silently reading from static.
+     * A {@link ResourceType#CONTENT} root is deliberately not used.
      *
-     * @param loader             the resource loader to use
-     * @param maxCacheableSize   maximum resource size in bytes that may be
-     *                           cached; larger resources are served but not
-     *                           retained
-     * @throws IllegalArgumentException if {@code maxCacheableSize} is negative
+     * @param roots            on-disk roots for the types this cache serves
+     * @param maxCacheableSize maximum resource size in bytes that may be cached
+     * @throws IllegalArgumentException if a required root is missing, the static
+     *                                  and shared roots are not separate, or the
+     *                                  size limit is negative
      */
-    public ResourcesCache(ResourcesLoader loader, long maxCacheableSize) {
+    public ResourcesCache(Map<ResourceType, Path> roots, long maxCacheableSize) {
         if (maxCacheableSize < 0) {
             throw new IllegalArgumentException("maxCacheableSize must not be negative");
         }
-        this.loader = loader;
+        if (roots == null) {
+            throw new IllegalArgumentException("roots must not be null");
+        }
+
+        Path staticRoot = roots.get(ResourceType.STATIC);
+        if (staticRoot == null) {
+            throw new IllegalArgumentException("A STATIC root is required");
+        }
+
+        Path sharedRoot = roots.get(ResourceType.SHARED);
+        if (sharedRoot != null && (sharedRoot.equals(staticRoot)
+                || sharedRoot.startsWith(staticRoot)
+                || staticRoot.startsWith(sharedRoot))) {
+            throw new IllegalArgumentException(
+                    "STATIC and SHARED roots must be separate, non-nested directories: "
+                            + staticRoot + " vs " + sharedRoot);
+        }
+
+        Map<ResourceType, ResourcesLoader> configured = new HashMap<>();
+        configured.put(ResourceType.STATIC,
+                new ResourcesLoader(staticRoot, LookupOrder.DISK_FIRST));
+        if (sharedRoot != null) {
+            configured.put(ResourceType.SHARED,
+                    new ResourcesLoader(sharedRoot, LookupOrder.DISK_ONLY));
+        }
+        this.loaders = Map.copyOf(configured);
         this.maxCacheableSize = maxCacheableSize;
     }
 
-    /**
-     * Gets a resource entry, caching it subject to the default cache policy.
-     *
-     * @param path the path to the resource
-     * @return the cached entry, or null if the resource does not exist
-     */
-    public Entry get(String path) {
-        return get(path, CachePolicy.CACHE);
-    }
+    // region typed lookup
 
     /**
-     * Gets a resource entry, honouring the given cache policy and the size limit.
+     * Gets a resource entry, honouring the type's cache rules and the given
+     * policy.
      *
-     * @param path   the path to the resource
-     * @param policy whether the resource may be cached
-     * @return the entry, or null if the resource does not exist
+     * @param type   the resource type
+     * @param path   the path to the resource, relative to the type's root
+     * @param policy whether a cacheable resource may be cached; ignored for
+     *               {@link ResourceType#SHARED}
+     * @return the entry, or null if the resource does not exist or the path is empty
+     * @throws IllegalArgumentException for {@link ResourceType#CONTENT}
      */
-    public Entry get(String path, CachePolicy policy) {
-        boolean cacheable = policy == CachePolicy.CACHE;
+    public Entry get(ResourceType type, String path, CachePolicy policy) {
+        if (type == ResourceType.CONTENT) {
+            throw new IllegalArgumentException(
+                    "CONTENT resources are not served by ResourcesCache");
+        }
+        if (path == null || path.isEmpty()) {
+            return null;
+        }
+
+        boolean cacheable = type != ResourceType.SHARED && policy == CachePolicy.CACHE;
+        Key key = new Key(type, path);
 
         if (cacheable) {
-            Entry cached = cache.get(path);
+            Entry cached = cache.get(key);
             if (cached != null) {
                 return cached == MISSING ? null : cached;
             }
@@ -101,65 +142,153 @@ public class ResourcesCache {
 
         // Loading happens outside computeIfAbsent so blocking I/O never runs
         // while a ConcurrentHashMap bin is locked.
-        byte[] data = loader.loadBinary(path);
+        byte[] data = loader(type).loadBinary(path);
 
         if (data == null) {
             if (cacheable) {
-                cache.put(path, MISSING);
+                cache.put(key, MISSING);
             }
             return null;
         }
 
-        Entry entry = new Entry(data, Etags.of(data));
+        // SHARED bytes are never retained and never hashed: hashing a 500 MB
+        // archive on every lookup would defeat the point of not caching it.
+        Entry entry = new Entry(data,
+                type == ResourceType.SHARED ? null : Etags.of(data));
         if (cacheable && data.length <= maxCacheableSize) {
-            cache.put(path, entry);
+            cache.put(key, entry);
         }
         return entry;
     }
 
     /**
-     * Gets binary data, honouring the given cache policy.
+     * Gets binary data, honouring the type's cache rules and the given policy.
      *
+     * @param type   the resource type
      * @param path   the path to the resource
-     * @param policy whether the resource may be cached
+     * @param policy whether a cacheable resource may be cached
      * @return byte array or null if not found
      */
-    public byte[] getBinary(String path, CachePolicy policy) {
-        Entry entry = get(path, policy);
+    public byte[] getBinary(ResourceType type, String path, CachePolicy policy) {
+        Entry entry = get(type, path, policy);
         return entry != null ? entry.data() : null;
     }
 
     /**
-     * Gets binary data from cache, loading it lazily if not present.
+     * Gets the resource decoded as UTF-8 text, honouring the type's cache rules.
      *
-     * @param path the path to the resource
-     * @return byte array or null if not found
-     */
-    public byte[] getBinary(String path) {
-        return getBinary(path, CachePolicy.CACHE);
-    }
-
-    /**
-     * Gets the resource decoded as UTF-8 text, honouring the given cache policy.
-     *
+     * @param type   the resource type
      * @param path   the path to the resource
-     * @param policy whether the resource may be cached
+     * @param policy whether a cacheable resource may be cached
      * @return string or null if not found
      */
-    public String getText(String path, CachePolicy policy) {
-        byte[] data = getBinary(path, policy);
+    public String getText(ResourceType type, String path, CachePolicy policy) {
+        byte[] data = getBinary(type, path, policy);
         return data != null ? new String(data, StandardCharsets.UTF_8) : null;
     }
 
     /**
-     * Gets the resource decoded as UTF-8 text.
+     * Checks whether a resource exists without retaining its bytes for
+     * {@link ResourceType#SHARED}.
      *
+     * @param type the resource type
      * @param path the path to the resource
-     * @return string or null if not found
+     * @return true when the resource exists
      */
-    public String getText(String path) {
-        return getText(path, CachePolicy.CACHE);
+    public boolean exists(ResourceType type, String path) {
+        if (type == ResourceType.CONTENT) {
+            throw new IllegalArgumentException(
+                    "CONTENT resources are not served by ResourcesCache");
+        }
+        if (path == null || path.isEmpty()) {
+            return false;
+        }
+        if (type == ResourceType.SHARED) {
+            return loader(type).exists(path);
+        }
+        return get(type, path, CachePolicy.CACHE) != null;
     }
+
+    /**
+     * Returns the resources available under the given directory of a type.
+     *
+     * @param type     the resource type
+     * @param basePath path to the folder, relative to the type's root
+     * @return list of resource paths
+     * @throws IllegalArgumentException for {@link ResourceType#CONTENT}
+     */
+    public List<String> listResources(ResourceType type, String basePath) {
+        if (type == ResourceType.CONTENT) {
+            throw new IllegalArgumentException(
+                    "CONTENT resources are not served by ResourcesCache");
+        }
+        return loader(type).listResources(basePath);
+    }
+
+    /**
+     * Checks if a resource lookup is cached, including a cached miss.
+     *
+     * @param type the resource type
+     * @param path the path to the resource
+     * @return true if cached, false otherwise
+     */
+    public boolean isCached(ResourceType type, String path) {
+        if (type == ResourceType.CONTENT || path == null || path.isEmpty()) {
+            return false;
+        }
+        return cache.containsKey(new Key(type, path));
+    }
+
+    // endregion
+
+    // region static shortcuts
+
+    /** Gets a {@link ResourceType#STATIC} entry, cached subject to the default policy. */
+    public Entry get(String path) {
+        return get(ResourceType.STATIC, path, CachePolicy.CACHE);
+    }
+
+    /** Gets a {@link ResourceType#STATIC} entry, honouring the given policy. */
+    public Entry get(String path, CachePolicy policy) {
+        return get(ResourceType.STATIC, path, policy);
+    }
+
+    /** Gets {@link ResourceType#STATIC} binary data with the default policy. */
+    public byte[] getBinary(String path) {
+        return getBinary(ResourceType.STATIC, path, CachePolicy.CACHE);
+    }
+
+    /** Gets {@link ResourceType#STATIC} binary data, honouring the given policy. */
+    public byte[] getBinary(String path, CachePolicy policy) {
+        return getBinary(ResourceType.STATIC, path, policy);
+    }
+
+    /** Gets a {@link ResourceType#STATIC} resource as UTF-8 text. */
+    public String getText(String path) {
+        return getText(ResourceType.STATIC, path, CachePolicy.CACHE);
+    }
+
+    /** Gets a {@link ResourceType#STATIC} resource as UTF-8 text, honouring the given policy. */
+    public String getText(String path, CachePolicy policy) {
+        return getText(ResourceType.STATIC, path, policy);
+    }
+
+    /** Checks whether a {@link ResourceType#STATIC} resource exists. */
+    public boolean exists(String path) {
+        return exists(ResourceType.STATIC, path);
+    }
+
+    /** Checks whether a {@link ResourceType#STATIC} lookup is cached. */
+    public boolean isCached(String path) {
+        return isCached(ResourceType.STATIC, path);
+    }
+
+    /** Lists {@link ResourceType#STATIC} resources under the given directory. */
+    public List<String> listResources(String basePath) {
+        return listResources(ResourceType.STATIC, basePath);
+    }
+
+    // endregion
 
     /**
      * The maximum resource size in bytes that may be cached.
@@ -170,41 +299,16 @@ public class ResourcesCache {
         return maxCacheableSize;
     }
 
-    /**
-     * Clears all cached resources.
-     */
+    /** Clears all cached resources. */
     public void clear() {
         cache.clear();
     }
 
-    /**
-     * Checks if a resource lookup is cached (including a cached miss).
-     *
-     * @param path the path to the resource
-     * @return true if cached, false otherwise
-     */
-    public boolean isCached(String path) {
-        return cache.containsKey(path);
+    private ResourcesLoader loader(ResourceType type) {
+        ResourcesLoader loader = loaders.get(type);
+        if (loader == null) {
+            throw new IllegalStateException("No root configured for resource type " + type);
+        }
+        return loader;
     }
-
-    /**
-     * Check exist resource on disk or in jar file.
-     *
-     * @param path path to file
-     * @return true exist, false don't exist
-     */
-    public boolean exists(String path) {
-        return get(path) != null;
-    }
-
-    /**
-     * Returns the resources available under the given directory.
-     *
-     * @param basePath path to folder
-     * @return list of resource paths
-     */
-    public List<String> listResources(String basePath) {
-        return loader.listResources(basePath);
-    }
-
 }
