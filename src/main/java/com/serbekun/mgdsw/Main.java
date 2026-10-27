@@ -37,13 +37,14 @@ public final class Main {
 
         // Create ResourceService
         log.info("starting resource mod.");
-        ResourcesLoader resourcesLoader = new ResourcesLoader();
+        Path staticRoot = Path.of(config.configResources().staticBasePath());
+        ResourcesLoader resourcesLoader = new ResourcesLoader(staticRoot);
         ResourcesCache resourcesCache = new ResourcesCache(resourcesLoader, config.configResources().maxCacheableSize());
         ResourcesService resourcesService = new ResourcesService(resourcesCache);
 
         // Create unpacker and unpack resources.
         ResourcesUnpacker resourcesUnpacker = new ResourcesUnpacker(resourcesLoader, BuildInfo.version());
-        resourcesUnpacker.unpack();
+        resourcesUnpacker.unpack(config.configResources());
 
         // init http layer
         log.info("starting init http layer.");
