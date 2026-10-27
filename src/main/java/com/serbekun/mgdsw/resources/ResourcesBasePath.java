@@ -38,10 +38,10 @@ public enum ResourcesBasePath {
     PARTIALS("html/partials/", UnpackPolicy.PACKAGED, CachePolicy.CACHE),
 
     /** Minecraft map ZIP archives shared from the Maxim Games Discord server. */
-    MINECRAFT_MAPS_ZIPS("zip/minecraft_maps_zips/", UnpackPolicy.DISK_ONLY, CachePolicy.DISABLE_CACHE),
+    MINECRAFT_MAPS_ZIPS("minecraft_maps_zips/", UnpackPolicy.DISK_ONLY, CachePolicy.DISABLE_CACHE),
 
     /** Minecraft map YAML where will be saved map metadata. */
-    MINECRAFT_MAPS_YAML("yaml/minecraft_maps_yamls", UnpackPolicy.DISK_ONLY, CachePolicy.DISABLE_CACHE);
+    MINECRAFT_MAPS_YAML("minecraft_maps", UnpackPolicy.DISK_ONLY, CachePolicy.DISABLE_CACHE);
 
     private final String basePath;
     private final UnpackPolicy unpackPolicy;
