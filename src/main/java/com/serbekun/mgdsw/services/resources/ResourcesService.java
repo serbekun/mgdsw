@@ -1,6 +1,7 @@
 package com.serbekun.mgdsw.services.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.serbekun.mgdsw.resources.ResourceType;
 import com.serbekun.mgdsw.resources.ResourcesCache;
 import com.serbekun.mgdsw.resources.ResourcesBasePath;
 
@@ -11,7 +12,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Public API for loading static resources.
+ * Public API for serving static and shared resources.
+ * <p>
+ * The resource type is part of the contract:
+ * <ul>
+ *   <li>{@link ResourceType#STATIC} resources are served and may be cached;</li>
+ *   <li>{@link ResourceType#SHARED} resources are served but never cached;</li>
+ *   <li>{@link ResourceType#CONTENT} is deliberately not served. Content is
+ *       configuration data read by its own services, not an HTTP resource, so
+ *       there are no content methods here and every attempt to use a content
+ *       base path fails fast.</li>
+ * </ul>
  * <p>
  * Every method that takes a caller-supplied name runs it through
  * {@link ResourcesBasePath#resolve}, so a name coming from a URL can never
@@ -30,7 +41,8 @@ public class ResourcesService {
      * A resource ready to be written to a response.
      *
      * @param data        the resource bytes; must not be modified
-     * @param etag        the ETag of these bytes
+     * @param etag        the ETag of these bytes, or {@code null} for shared
+     *                    resources, which are never cached or hashed
      * @param contentType the content type derived from the file extension
      */
     public record ResourceData(byte[] data, String etag, String contentType) {}
@@ -51,15 +63,18 @@ public class ResourcesService {
      * @param basePath the resource directory, e.g. {@link ResourcesBasePath#CSS}
      * @param name     the file name inside that directory
      * @return the resource, or null if the name is empty or the file is missing
-     * @throws IllegalArgumentException if the name contains path traversal characters
+     * @throws IllegalArgumentException if the base path is a content resource or
+     *                                  the name contains path traversal characters
      */
     public ResourceData getResource(ResourcesBasePath basePath, String name) {
+        requireServable(basePath);
         if (name == null || name.isEmpty()) {
             return null;
         }
 
         String path = basePath.resolve(name);
-        ResourcesCache.Entry entry = cache.get(path, basePath.getCachePolicy());
+        ResourcesCache.Entry entry = cache.get(
+                basePath.getResourceType(), path, basePath.getCachePolicy());
         if (entry == null) {
             return null;
         }
@@ -94,13 +109,15 @@ public class ResourcesService {
     }
 
     /**
-     * Return list of available files in directory.
+     * Return list of available files in a resource directory.
      *
      * @param basePath the directory to list
-     * @return list of available files in directory
+     * @return list of available files in the directory
+     * @throws IllegalArgumentException for a content resource
      */
     public List<String> listResources(ResourcesBasePath basePath) {
-        return cache.listResources(basePath.getBasePath());
+        requireServable(basePath);
+        return cache.listResources(basePath.getResourceType(), basePath.getBasePath());
     }
 
     /**
@@ -109,6 +126,7 @@ public class ResourcesService {
      *
      * @param basePath the directory to list
      * @return the JSON listing, or {@code null} if serialization fails
+     * @throws IllegalArgumentException for a content resource
      */
     public String listAsJson(ResourcesBasePath basePath) {
         String prefix = basePath.getBasePath();
@@ -182,6 +200,17 @@ public class ResourcesService {
     // endregion
 
     /**
+     * Rejects content resources before any lookup happens: content is not an
+     * HTTP resource and must be read by its own service.
+     */
+    private static void requireServable(ResourcesBasePath basePath) {
+        if (basePath.getResourceType() == ResourceType.CONTENT) {
+            throw new IllegalArgumentException(
+                    "CONTENT resources are not served by ResourcesService: " + basePath);
+        }
+    }
+
+    /**
      * Reads a named file of a resource directory as UTF-8 text.
      *
      * @param basePath the resource directory
@@ -189,10 +218,12 @@ public class ResourcesService {
      * @return the text, or null if the name is empty or the file is missing
      */
     private String getText(ResourcesBasePath basePath, String name) {
+        requireServable(basePath);
         if (name == null || name.isEmpty()) {
             return null;
         }
-        return cache.getText(basePath.resolve(name), basePath.getCachePolicy());
+        return cache.getText(
+                basePath.getResourceType(), basePath.resolve(name), basePath.getCachePolicy());
     }
 
     /**
@@ -203,10 +234,12 @@ public class ResourcesService {
      * @return the bytes, or null if the name is empty or the file is missing
      */
     private byte[] getBytes(ResourcesBasePath basePath, String name) {
+        requireServable(basePath);
         if (name == null || name.isEmpty()) {
             return null;
         }
-        return cache.getBinary(basePath.resolve(name), basePath.getCachePolicy());
+        return cache.getBinary(
+                basePath.getResourceType(), basePath.resolve(name), basePath.getCachePolicy());
     }
 
     /**
