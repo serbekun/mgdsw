@@ -4,11 +4,13 @@ import com.serbekun.mgdsw.services.resources.ResourcesService;
 import com.serbekun.mgdsw.config.ConfigContext;
 import com.serbekun.mgdsw.config.ConfigLoader;
 import com.serbekun.mgdsw.http.InitHttp;
+import com.serbekun.mgdsw.resources.ResourceType;
 import com.serbekun.mgdsw.resources.ResourcesCache;
 import com.serbekun.mgdsw.resources.ResourcesLoader;
 import com.serbekun.mgdsw.resources.ResourcesUnpacker;
 
 import java.nio.file.Path;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +29,7 @@ public final class Main {
 
         ConfigLoader configLoader = new ConfigLoader();
 
+        
         String configFilePath = System.getenv(Envs.MGDSW_CONFIG.name());
         if (configFilePath == null) {
             config = configLoader.loadDefault();
@@ -39,7 +42,11 @@ public final class Main {
         log.info("starting resource mod.");
         Path staticRoot = Path.of(config.configResources().staticBasePath());
         ResourcesLoader resourcesLoader = new ResourcesLoader(staticRoot);
-        ResourcesCache resourcesCache = new ResourcesCache(resourcesLoader, config.configResources().maxCacheableSize());
+        ResourcesCache resourcesCache = new ResourcesCache(
+                Map.of(
+                        ResourceType.STATIC, staticRoot,
+                        ResourceType.SHARED, Path.of(config.configResources().sharedBasePath())),
+                config.configResources().maxCacheableSize());
         ResourcesService resourcesService = new ResourcesService(resourcesCache);
 
         // Create unpacker and unpack resources.
