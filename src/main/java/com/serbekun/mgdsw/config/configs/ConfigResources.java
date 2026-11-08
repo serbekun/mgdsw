@@ -3,7 +3,9 @@ package com.serbekun.mgdsw.config.configs;
 public record ConfigResources(long maxCacheableSize,
     String staticBasePath,
     String contentBasePath,
-    String sharedBasePath
+    String sharedBasePath,
+    String examplesBasePath
+
 ) {
     public ConfigResources {
         if (maxCacheableSize < 0) {

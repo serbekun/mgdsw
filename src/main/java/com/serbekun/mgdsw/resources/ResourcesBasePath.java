@@ -9,10 +9,18 @@ import com.serbekun.mgdsw.services.resources.ResourcesService;
  * Single source of truth for static resource directory paths.
  * <p>
  * Every enum constant represents a resource directory (HTML, CSS, JS, images,
- * partials, Minecraft map zips) together with its base path inside the
- * application resources. It is the single point where all resource directory
- * names are defined, so {@link ResourcesService}, {@link ResourcesLoader} and
- * the first-run unpacker all agree on where each kind of resource lives.
+ * partials, Minecraft map zips, examples) together with its base path inside
+ * the application resources. It is the single point where all resource
+ * directory names are defined, so {@link ResourcesService},
+ * {@link ResourcesLoader} and the first-run unpacker all agree on where each
+ * kind of resource lives.
+ * </p>
+ * <p>
+ * The destination path ({@link #getBasePath()}) normally also identifies the
+ * classpath directory the files are unpacked from. Entries like
+ * {@link #MINECRAFT_MAPS_YAML_EXAMPLES} use a separate
+ * {@link #getSourcePath()} when the packaged layout differs from the runtime
+ * layout.
  * </p>
  * <p>
  * Instances additionally validate resource names passed to {@link #resolve}
@@ -41,26 +49,54 @@ public enum ResourcesBasePath {
     MINECRAFT_MAPS_ZIPS("minecraft_maps_zips/", UnpackPolicy.DISK_ONLY, CachePolicy.DISABLE_CACHE,  ResourceType.SHARED),
 
     /** Minecraft map YAML where will be saved map metadata. */
-    MINECRAFT_MAPS_YAML("minecraft_maps", UnpackPolicy.DISK_ONLY, CachePolicy.DISABLE_CACHE, ResourceType.CONTENT);
+    MINECRAFT_MAPS_YAML("minecraft_maps/", UnpackPolicy.DISK_ONLY, CachePolicy.DISABLE_CACHE, ResourceType.CONTENT),
+
+    // region examples
+
+    /** Example Minecraft map YAML, unpacked into the examples root. */
+    MINECRAFT_MAPS_YAML_EXAMPLES("minecraft_maps/", "examples/minecraft_maps/",
+            UnpackPolicy.PACKAGED, CachePolicy.DISABLE_CACHE, ResourceType.EXAMPLES);
+
+    // endregion
 
     private final String basePath;
+    private final String sourcePath;
     private final UnpackPolicy unpackPolicy;
     private final CachePolicy cachePolicy;
     private final ResourceType resourceType;
 
     /**
-     * Creates a new resource base path entry.
+     * Creates a new resource base path entry whose classpath source and
+     * destination path are identical.
      *
      * @param basePath the directory path inside resources; a trailing slash is
      *                 added automatically if missing
      * @param policy   whether the directory's contents are packaged in the JAR
      *                 or exist only on disk
      */
-    ResourcesBasePath(String basePath, UnpackPolicy UnpackPolicy, CachePolicy cachePolicy, ResourceType resourceType) {
-        this.basePath = basePath.endsWith("/") ? basePath : basePath + "/";
-        this.unpackPolicy = UnpackPolicy;
+    ResourcesBasePath(String basePath, UnpackPolicy policy, CachePolicy cachePolicy, ResourceType resourceType) {
+        this(basePath, basePath, policy, cachePolicy, resourceType);
+    }
+
+    /**
+     * Creates a new resource base path entry with a separate classpath source.
+     *
+     * @param basePath   the destination directory relative to its resource root
+     * @param sourcePath the source directory inside the classpath
+     * @param policy     whether the directory's contents are packaged in the JAR
+     *                   or exist only on disk
+     */
+    ResourcesBasePath(String basePath, String sourcePath, UnpackPolicy policy,
+            CachePolicy cachePolicy, ResourceType resourceType) {
+        this.basePath = withTrailingSlash(basePath);
+        this.sourcePath = withTrailingSlash(sourcePath);
+        this.unpackPolicy = policy;
         this.cachePolicy = cachePolicy;
         this.resourceType = resourceType;
+    }
+
+    private static String withTrailingSlash(String path) {
+        return path.endsWith("/") ? path : path + "/";
     }
 
     /** The directory path this entry represents, always ending with {@code '/'}.
@@ -69,6 +105,15 @@ public enum ResourcesBasePath {
      */
     public String getBasePath() {
         return basePath;
+    }
+
+    /**
+     * The directory path inside the classpath this entry is unpacked from.
+     *
+     * @return the classpath source path, always ending with {@code '/'}
+     **/
+    public String getSourcePath() {
+        return sourcePath;
     }
 
     /**

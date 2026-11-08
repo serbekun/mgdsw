@@ -8,3 +8,5 @@ resources:
   contentBasePath: "data/content/"
   # Change to /srv/mgdsw/data/shared/ on prod.
   sharedBasePath: "data/shared/"
+  # Change to /srv/mgdsw/data/examples/ on prod.
+  examplesBasePath: "data/examples/"

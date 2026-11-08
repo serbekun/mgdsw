@@ -18,6 +18,8 @@ import java.util.concurrent.ConcurrentMap;
  *       classpath fallback and may be cached;</li>
  *   <li>{@link ResourceType#CONTENT} is never served by this class. Content is
  *       configuration data owned by its own services, not an HTTP resource.</li>
+ *   <li>{@link ResourceType#EXAMPLES} is never served either: example files are
+ *       copied out for the operator by the unpacker.</li>
  *   <li>{@link ResourceType#SHARED} is read from the shared root and is
  *       <strong>never cached</strong>, even when the caller asks for
  *       {@link CachePolicy#CACHE}. Shared files are large and are served by
@@ -67,7 +69,8 @@ public class ResourcesCache {
      * <p>A {@link ResourceType#STATIC} root is required. A
      * {@link ResourceType#SHARED} root is optional: when it is absent, shared
      * lookups fail with a clear error instead of silently reading from static.
-     * A {@link ResourceType#CONTENT} root is deliberately not used.
+     * {@link ResourceType#CONTENT} and {@link ResourceType#EXAMPLES} roots are
+     * deliberately not used because those types are not served.
      *
      * @param roots            on-disk roots for the types this cache serves
      * @param maxCacheableSize maximum resource size in bytes that may be cached
@@ -119,12 +122,13 @@ public class ResourcesCache {
      * @param policy whether a cacheable resource may be cached; ignored for
      *               {@link ResourceType#SHARED}
      * @return the entry, or null if the resource does not exist or the path is empty
-     * @throws IllegalArgumentException for {@link ResourceType#CONTENT}
+     * @throws IllegalArgumentException for {@link ResourceType#CONTENT} and
+     *                                  {@link ResourceType#EXAMPLES}
      */
     public Entry get(ResourceType type, String path, CachePolicy policy) {
-        if (type == ResourceType.CONTENT) {
+        if (type == ResourceType.CONTENT || type == ResourceType.EXAMPLES) {
             throw new IllegalArgumentException(
-                    "CONTENT resources are not served by ResourcesCache");
+                    type + " resources are not served by ResourcesCache");
         }
         if (path == null || path.isEmpty()) {
             return null;
@@ -196,9 +200,9 @@ public class ResourcesCache {
      * @return true when the resource exists
      */
     public boolean exists(ResourceType type, String path) {
-        if (type == ResourceType.CONTENT) {
+        if (type == ResourceType.CONTENT || type == ResourceType.EXAMPLES) {
             throw new IllegalArgumentException(
-                    "CONTENT resources are not served by ResourcesCache");
+                    type + " resources are not served by ResourcesCache");
         }
         if (path == null || path.isEmpty()) {
             return false;
@@ -215,12 +219,13 @@ public class ResourcesCache {
      * @param type     the resource type
      * @param basePath path to the folder, relative to the type's root
      * @return list of resource paths
-     * @throws IllegalArgumentException for {@link ResourceType#CONTENT}
+     * @throws IllegalArgumentException for {@link ResourceType#CONTENT} and
+     *                                  {@link ResourceType#EXAMPLES}
      */
     public List<String> listResources(ResourceType type, String basePath) {
-        if (type == ResourceType.CONTENT) {
+        if (type == ResourceType.CONTENT || type == ResourceType.EXAMPLES) {
             throw new IllegalArgumentException(
-                    "CONTENT resources are not served by ResourcesCache");
+                    type + " resources are not served by ResourcesCache");
         }
         return loader(type).listResources(basePath);
     }
@@ -233,7 +238,8 @@ public class ResourcesCache {
      * @return true if cached, false otherwise
      */
     public boolean isCached(ResourceType type, String path) {
-        if (type == ResourceType.CONTENT || path == null || path.isEmpty()) {
+        if (type == ResourceType.CONTENT || type == ResourceType.EXAMPLES
+                || path == null || path.isEmpty()) {
             return false;
         }
         return cache.containsKey(new Key(type, path));

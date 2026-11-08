@@ -25,7 +25,9 @@ import com.serbekun.mgdsw.config.configs.ConfigResources;
  *   <li>{@code resources.contentBasePath} — operator-managed metadata that can
  *       change without rebuilding the server (for example, map YAML);</li>
  *   <li>{@code resources.sharedBasePath} — large shared files such as Minecraft
- *       map ZIP archives.</li>
+ *       map ZIP archives;</li>
+ *   <li>{@code resources.examplesBasePath} — example files copied out for the
+ *       operator, never served over HTTP.</li>
  * </ul>
  *
  * <p>Every root and every directory declared by {@link ResourcesBasePath} is created
@@ -70,7 +72,7 @@ public class ResourcesUnpacker {
      * Ensures the configured roots and their subdirectories exist, then unpacks the
      * packaged templates when the static copy is missing or from another version.
      *
-     * @param configResources the configured static, content and shared roots
+     * @param configResources the configured static, content, shared and examples roots
      * @return {@code true} when the templates were (re)written, {@code false} when the
      *         static copy was already current
      * @throws IllegalStateException when a root is blank, nested inside another root,
@@ -84,8 +86,9 @@ public class ResourcesUnpacker {
         Path staticRoot = root(configResources.staticBasePath(), "resources.staticBasePath");
         Path contentRoot = root(configResources.contentBasePath(), "resources.contentBasePath");
         Path sharedRoot = root(configResources.sharedBasePath(), "resources.sharedBasePath");
+        Path examplesRoot = root(configResources.examplesBasePath(), "resources.examplesBasePath");
 
-        requireSeparate(staticRoot, contentRoot, sharedRoot);
+        requireSeparate(staticRoot, contentRoot, sharedRoot, examplesRoot);
 
         Path marker = staticRoot.resolve(MARKER_FILE);
         String unpackedVersion = Files.isRegularFile(marker) ? readMarker(marker) : null;
@@ -100,17 +103,17 @@ public class ResourcesUnpacker {
 
         int copied = 0;
         try {
-            createDirectories(staticRoot, contentRoot, sharedRoot);
+            createDirectories(staticRoot, contentRoot, sharedRoot, examplesRoot);
 
             for (ResourcesBasePath dir : ResourcesBasePath.directoriesToCreate()) {
-                Path dirRoot = rootFor(dir.getResourceType(), staticRoot, contentRoot, sharedRoot);
+                Path dirRoot = rootFor(dir.getResourceType(), staticRoot, contentRoot, sharedRoot, examplesRoot);
                 createDirectory(dirRoot, dir.getBasePath());
             }
 
             if (!current) {
                 for (ResourcesBasePath dir : ResourcesBasePath.packagedDirectories()) {
-                    Path dirRoot = rootFor(dir.getResourceType(), staticRoot, contentRoot, sharedRoot);
-                    copied += copyDirectory(dirRoot, dir.getBasePath());
+                    Path dirRoot = rootFor(dir.getResourceType(), staticRoot, contentRoot, sharedRoot, examplesRoot);
+                    copied += copyDirectory(dirRoot, dir.getSourcePath(), dir.getBasePath());
                 }
                 Files.writeString(marker, version + System.lineSeparator(), StandardCharsets.UTF_8,
                         StandardOpenOption.CREATE,
@@ -120,7 +123,7 @@ public class ResourcesUnpacker {
         } catch (IOException e) {
             throw new IllegalStateException(
                     "Failed to prepare resource directories " + staticRoot + ", " + contentRoot
-                            + " and " + sharedRoot, e);
+                            + ", " + sharedRoot + " and " + examplesRoot, e);
         }
 
         if (!current) {
@@ -148,13 +151,16 @@ public class ResourcesUnpacker {
     }
 
     /**
-     * Rejects equal or nested roots. The static root is served publicly, so content
-     * and shared data must never live inside it.
+     * Rejects equal or nested roots. The static root is served publicly, so content,
+     * shared data and examples must never live inside it (or inside each other).
      */
-    private static void requireSeparate(Path staticRoot, Path contentRoot, Path sharedRoot) {
+    private static void requireSeparate(Path staticRoot, Path contentRoot, Path sharedRoot, Path examplesRoot) {
         requireSeparate(staticRoot, contentRoot, "resources.staticBasePath", "resources.contentBasePath");
         requireSeparate(staticRoot, sharedRoot, "resources.staticBasePath", "resources.sharedBasePath");
+        requireSeparate(staticRoot, examplesRoot, "resources.staticBasePath", "resources.examplesBasePath");
         requireSeparate(contentRoot, sharedRoot, "resources.contentBasePath", "resources.sharedBasePath");
+        requireSeparate(contentRoot, examplesRoot, "resources.contentBasePath", "resources.examplesBasePath");
+        requireSeparate(sharedRoot, examplesRoot, "resources.sharedBasePath", "resources.examplesBasePath");
     }
 
     private static void requireSeparate(Path first, Path second, String firstName, String secondName) {
@@ -164,11 +170,13 @@ public class ResourcesUnpacker {
         }
     }
 
-    private static Path rootFor(ResourceType type, Path staticRoot, Path contentRoot, Path sharedRoot) {
+    private static Path rootFor(ResourceType type, Path staticRoot, Path contentRoot,
+            Path sharedRoot, Path examplesRoot) {
         return switch (type) {
             case STATIC -> staticRoot;
             case CONTENT -> contentRoot;
             case SHARED -> sharedRoot;
+            case EXAMPLES -> examplesRoot;
         };
     }
 
@@ -189,16 +197,23 @@ public class ResourcesUnpacker {
     /**
      * Copies every file of one packaged directory that is not already on disk.
      *
-     * @param root the destination root for this resource type
-     * @param dir  the packaged directory, with a trailing slash
+     * <p>The classpath source and the destination directory may differ: files are
+     * written below {@code destinationDir} while the file names are taken relative
+     * to {@code sourceDir}.</p>
+     *
+     * @param root           the destination root for this resource type
+     * @param sourceDir      the packaged classpath directory, with a trailing slash
+     * @param destinationDir the destination directory relative to {@code root}
      * @return how many files were written
      */
-    private int copyDirectory(Path root, String dir) {
+    private int copyDirectory(Path root, String sourceDir, String destinationDir) {
         int copied = 0;
-        for (String path : loader.listClasspath(dir)) {
-            Path target = root.resolve(path).normalize();
+        for (String path : loader.listClasspath(sourceDir)) {
+            String relative = path.substring(sourceDir.length());
+            String destination = destinationDir + relative;
+            Path target = root.resolve(destination).normalize();
             if (!target.startsWith(root)) {
-                log.warn("Refusing to unpack outside the resource root: {}", path);
+                log.warn("Refusing to unpack outside the resource root: {}", destination);
                 continue;
             }
             byte[] data = loader.loadFromClasspath(path);
