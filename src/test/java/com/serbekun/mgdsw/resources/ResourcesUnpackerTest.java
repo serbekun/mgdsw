@@ -23,14 +23,16 @@ class ResourcesUnpackerTest {
         Path staticRoot = temp.resolve("static");
         Path contentRoot = temp.resolve("content");
         Path sharedRoot = temp.resolve("shared");
+        Path examplesRoot = temp.resolve("examples");
 
         ResourcesUnpacker unpacker = unpackerFor(staticRoot);
 
-        assertThat(unpacker.unpack(config(staticRoot, contentRoot, sharedRoot))).isTrue();
+        assertThat(unpacker.unpack(config(staticRoot, contentRoot, sharedRoot, examplesRoot))).isTrue();
 
         assertThat(staticRoot.resolve("html").resolve("resource_test.html")).isRegularFile();
         assertThat(contentRoot.resolve("minecraft_maps")).isDirectory();
         assertThat(sharedRoot.resolve("minecraft_maps_zips")).isDirectory();
+        assertThat(examplesRoot.resolve("minecraft_maps").resolve("minecraft_map.example.yaml")).isRegularFile();
         assertThat(Files.readString(staticRoot.resolve(ResourcesUnpacker.MARKER_FILE)).strip())
                 .isEqualTo(VERSION);
 
@@ -44,7 +46,8 @@ class ResourcesUnpackerTest {
         Path staticRoot = temp.resolve("static");
         Path contentRoot = temp.resolve("content");
         Path sharedRoot = temp.resolve("shared");
-        ConfigResources config = config(staticRoot, contentRoot, sharedRoot);
+        Path examplesRoot = temp.resolve("examples");
+        ConfigResources config = config(staticRoot, contentRoot, sharedRoot, examplesRoot);
 
         ResourcesUnpacker unpacker = unpackerFor(staticRoot);
         assertThat(unpacker.unpack(config)).isTrue();
@@ -60,11 +63,12 @@ class ResourcesUnpackerTest {
     void rejectsRootsThatAreNestedInsideEachOther() {
         Path staticRoot = temp.resolve("static");
         Path sharedRoot = temp.resolve("shared");
+        Path examplesRoot = temp.resolve("examples");
 
         ResourcesUnpacker unpacker = unpackerFor(staticRoot);
 
         assertThatThrownBy(() -> unpacker.unpack(
-                config(staticRoot, staticRoot.resolve("content"), sharedRoot)))
+                config(staticRoot, staticRoot.resolve("content"), sharedRoot, examplesRoot)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("separate");
     }
@@ -73,11 +77,13 @@ class ResourcesUnpackerTest {
     void rejectsBlankRoot() {
         Path staticRoot = temp.resolve("static");
         Path sharedRoot = temp.resolve("shared");
+        Path examplesRoot = temp.resolve("examples");
 
         ResourcesUnpacker unpacker = unpackerFor(staticRoot);
 
         assertThatThrownBy(() -> unpacker.unpack(
-                new ConfigResources(1024, " ", temp.resolve("content").toString(), sharedRoot.toString())))
+                new ConfigResources(1024, " ", temp.resolve("content").toString(),
+                        sharedRoot.toString(), examplesRoot.toString())))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("staticBasePath");
     }
@@ -86,7 +92,8 @@ class ResourcesUnpackerTest {
         return new ResourcesUnpacker(new ResourcesLoader(staticRoot), VERSION);
     }
 
-    private ConfigResources config(Path staticRoot, Path contentRoot, Path sharedRoot) {
-        return new ConfigResources(1024, staticRoot.toString(), contentRoot.toString(), sharedRoot.toString());
+    private ConfigResources config(Path staticRoot, Path contentRoot, Path sharedRoot, Path examplesRoot) {
+        return new ConfigResources(1024, staticRoot.toString(), contentRoot.toString(),
+                sharedRoot.toString(), examplesRoot.toString());
     }
 }

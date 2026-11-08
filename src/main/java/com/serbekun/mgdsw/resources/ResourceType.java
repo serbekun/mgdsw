@@ -6,5 +6,7 @@ public enum ResourceType {
     /** Content files that can be changes without update server code. */
     CONTENT(),  
     /** share files like minecraft maps zip archives that also like a {@link ResourceType#CONTENT} can be changes without update server code. */
-    SHARED();
+    SHARED(),
+    /** Example files copied out for operators, never served over HTTP. */
+    EXAMPLES();
 }

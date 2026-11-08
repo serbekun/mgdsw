@@ -22,6 +22,8 @@ import org.slf4j.LoggerFactory;
  *       configuration data read by its own services, not an HTTP resource, so
  *       there are no content methods here and every attempt to use a content
  *       base path fails fast.</li>
+ *   <li>{@link ResourceType#EXAMPLES} is not served either: example files are
+ *       copied out for the operator at startup.</li>
  * </ul>
  * <p>
  * Every method that takes a caller-supplied name runs it through
@@ -204,9 +206,10 @@ public class ResourcesService {
      * HTTP resource and must be read by its own service.
      */
     private static void requireServable(ResourcesBasePath basePath) {
-        if (basePath.getResourceType() == ResourceType.CONTENT) {
+        if (basePath.getResourceType() == ResourceType.CONTENT
+                || basePath.getResourceType() == ResourceType.EXAMPLES) {
             throw new IllegalArgumentException(
-                    "CONTENT resources are not served by ResourcesService: " + basePath);
+                    basePath.getResourceType() + " resources are not served by ResourcesService: " + basePath);
         }
     }
 
