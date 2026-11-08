@@ -24,6 +24,18 @@ For run tests use
 ./gradlew test
 ```
 
+To clean the runtime `data/` directory use
+```bash
+./cleanup.sh
+```
+
+The server recreates `data/` on the next start and unpacks the packaged templates again. `data/content/` and `data/shared/` hold operator-owned files, so use `--keep-content` to preserve them:
+
+```bash
+./cleanup.sh --keep-content   # keep data/content/ and data/shared/
+./cleanup.sh --force          # no confirmation prompt
+```
+
 ## Requirements for start
 
 - JDK 25
