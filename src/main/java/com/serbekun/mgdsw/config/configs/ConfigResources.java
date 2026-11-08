@@ -5,6 +5,7 @@ public record ConfigResources(long maxCacheableSize,
     String contentBasePath,
     String sharedBasePath,
     String examplesBasePath
+
 ) {
     public ConfigResources {
         if (maxCacheableSize < 0) {

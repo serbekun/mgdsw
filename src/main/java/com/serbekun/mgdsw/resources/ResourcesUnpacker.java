@@ -151,8 +151,8 @@ public class ResourcesUnpacker {
     }
 
     /**
-     * Rejects equal or nested roots. The static root is served publicly, so content
-     * and shared data must never live inside it.
+     * Rejects equal or nested roots. The static root is served publicly, so content,
+     * shared data and examples must never live inside it (or inside each other).
      */
     private static void requireSeparate(Path staticRoot, Path contentRoot, Path sharedRoot, Path examplesRoot) {
         requireSeparate(staticRoot, contentRoot, "resources.staticBasePath", "resources.contentBasePath");

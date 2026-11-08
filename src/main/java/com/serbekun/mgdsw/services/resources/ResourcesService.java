@@ -203,7 +203,8 @@ public class ResourcesService {
 
     /**
      * Rejects content resources before any lookup happens: content is not an
-     * HTTP resource and must be read by its own service.
+     * HTTP resource and must be read by its own service. Examples are also
+     * rejected: they are copied out by the unpacker and never served.
      */
     private static void requireServable(ResourcesBasePath basePath) {
         if (basePath.getResourceType() == ResourceType.CONTENT
