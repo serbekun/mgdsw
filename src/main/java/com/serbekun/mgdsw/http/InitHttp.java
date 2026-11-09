@@ -6,6 +6,7 @@ import com.serbekun.mgdsw.config.configs.ConfigHttpInit;
 import com.serbekun.mgdsw.http.handles.ApiV0Health;
 import com.serbekun.mgdsw.http.handles.ApiV0SharedMinecraftMapsList;
 import com.serbekun.mgdsw.http.handles.ApiV0SharedMinecraftMapsYaml;
+import com.serbekun.mgdsw.http.handles.ApiV0Version;
 import com.serbekun.mgdsw.services.sharedcontent.MinecraftMapsService;
 
 import io.javalin.Javalin;
@@ -67,6 +68,7 @@ public class InitHttp {
         log.info("Creating handlers list");
         handlers = List.of(
             new ApiV0Health(),
+            new ApiV0Version(),
             new ApiV0SharedMinecraftMapsYaml(minecraftMapsService),
             new ApiV0SharedMinecraftMapsList(minecraftMapsService)
         );
