@@ -4,6 +4,9 @@ import java.util.List;
 
 import com.serbekun.mgdsw.config.configs.ConfigHttpInit;
 import com.serbekun.mgdsw.http.handles.ApiV0Health;
+import com.serbekun.mgdsw.http.handles.ApiV0SharedMinecraftMapsList;
+import com.serbekun.mgdsw.http.handles.ApiV0SharedMinecraftMapsYaml;
+import com.serbekun.mgdsw.services.sharedcontent.MinecraftMapsService;
 
 import io.javalin.Javalin;
 
@@ -59,11 +62,13 @@ public class InitHttp {
      *       {@value #HTTP_PORT}.</li>
      * </ol>
      */
-    public void init() {
+    public void init(MinecraftMapsService minecraftMapsService) {
 
         log.info("Creating handlers list");
         handlers = List.of(
-            new ApiV0Health()
+            new ApiV0Health(),
+            new ApiV0SharedMinecraftMapsYaml(minecraftMapsService),
+            new ApiV0SharedMinecraftMapsList(minecraftMapsService)
         );
 
         addShutdownHook(server);
