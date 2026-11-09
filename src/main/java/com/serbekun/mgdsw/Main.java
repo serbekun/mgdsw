@@ -1,8 +1,10 @@
 package com.serbekun.mgdsw;
 
 import com.serbekun.mgdsw.services.resources.ResourcesService;
+import com.serbekun.mgdsw.services.sharedcontent.MinecraftMapsService;
 import com.serbekun.mgdsw.config.ConfigContext;
 import com.serbekun.mgdsw.config.ConfigLoader;
+import com.serbekun.mgdsw.domain.sharedcontent.MinecraftMaps;
 import com.serbekun.mgdsw.http.InitHttp;
 import com.serbekun.mgdsw.resources.ResourceType;
 import com.serbekun.mgdsw.resources.ResourcesCache;
@@ -22,14 +24,13 @@ public final class Main {
     public static void main(String[] args) {
 
         log.info("mgdsw" + BuildInfo.version());
-
+      
         // Create config objects
         log.info("starting init config.");
         ConfigContext config = null;
 
         ConfigLoader configLoader = new ConfigLoader();
 
-        
         String configFilePath = System.getenv(Envs.MGDSW_CONFIG.name());
         if (configFilePath == null) {
             config = configLoader.loadDefault();
@@ -53,9 +54,16 @@ public final class Main {
         ResourcesUnpacker resourcesUnpacker = new ResourcesUnpacker(resourcesLoader, BuildInfo.version());
         resourcesUnpacker.unpack(config.configResources());
 
+        // Create domain objects.
+        MinecraftMaps minecraftMaps 
+            = new MinecraftMaps(Path.of(config.configResources().contentBasePath()));
+
+        // Create other services.
+        MinecraftMapsService minecraftMapsService = new MinecraftMapsService(minecraftMaps);
+
         // init http layer
         log.info("starting init http layer.");
         InitHttp http = new InitHttp(config.http());
-        http.init();
+        http.init(minecraftMapsService);
     }
 }
