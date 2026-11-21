@@ -1,0 +1,37 @@
+# Example Minecraft map metadata file.
+# Copy this file to data/content/minecraft_maps/<slug>.yaml and adjust the values.
+
+# Value used to build the download URL. Must be unique.
+slug: "example-map"
+
+# Map name displayed on the page.
+name: "Example Map"
+
+# Map authors.
+authors:
+  - "Author One"
+  - "Author Two"
+
+# Map description.
+description: "A short description of the map."
+
+# Map license.
+license: "CC BY-SA 4.0"
+
+# Minecraft map version.
+mapVersion: "1.0.0"
+
+# Date when the map was released (ISO-8601, yyyy-MM-dd).
+releaseDate: 2026-01-01
+
+# Minecraft version the map was created for.
+minecraftVersion: "1.21.4"
+
+# If true, the map is visible on the site and the zip can be downloaded.
+published: true
+
+# If true, the map is visible on the site but the zip cannot be downloaded.
+preview: false
+
+# SHA-256 checksum of the map zip (64 hex characters), sent in the response header.
+zipSha256: "0000000000000000000000000000000000000000000000000000000000000000"
