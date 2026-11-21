@@ -85,7 +85,6 @@ impl MinecraftMapsService {
     pub fn get_minecraft_map_public(&self, slug: &str) -> Option<ApiV0SharedMinecraftMapsYamlRes> {
         let minecraft_map = self.minecraft_maps.get_by_slug(slug)?;
 
-
         // If the map is not published, it must not be visible from outside.
         if !minecraft_map.published() {
             info!("Minecraft map: '{slug}' not published");
