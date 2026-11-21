@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use super::error::ResourcesError;
-use super::resource_type::ResourceType;
-use super::resources_base_path::ResourcesBasePath;
-use super::resources_cache::ResourcesCache;
+use crate::resources::error::ResourcesError;
+use crate::resources::resource_type::ResourceType;
+use crate::resources::resources_base_path::ResourcesBasePath;
+use crate::resources::resources_cache::ResourcesCache;
 
 /// A resource ready to be written to a response.
 #[derive(Clone, Debug)]

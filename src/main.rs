@@ -3,6 +3,8 @@ mod domain;
 mod http;
 #[allow(dead_code)]
 mod resources;
+#[allow(dead_code)]
+mod services;
 
 use std::collections::HashMap;
 use std::process::ExitCode;
@@ -12,7 +14,7 @@ use tracing_subscriber;
 
 use resources::{
     DEFAULT_MAX_CACHEABLE_SIZE, ResourceRoots, ResourceType, ResourcesBasePath, ResourcesCache,
-    ResourcesLoader, ResourcesService, ResourcesUnpacker,
+    ResourcesLoader, ResourcesUnpacker,
 };
 
 use crate::http::init_http::init_http;
@@ -44,7 +46,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     unpack_resources(&roots)?;
-    
+
     let svr = init_http();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080").await?;
     info!("Listening on http://{}", listener.local_addr()?);

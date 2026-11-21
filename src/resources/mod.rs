@@ -23,7 +23,6 @@ pub mod resource_type;
 pub mod resources_base_path;
 pub mod resources_cache;
 pub mod resources_loader;
-pub mod resources_service;
 pub mod resources_unpacker;
 pub mod unpack_policy;
 
@@ -34,6 +33,5 @@ pub use resource_type::ResourceType;
 pub use resources_base_path::ResourcesBasePath;
 pub use resources_cache::{DEFAULT_MAX_CACHEABLE_SIZE, Entry, ResourcesCache};
 pub use resources_loader::{DEFAULT_OVERRIDE_ROOT, EmbeddedResources, ResourcesLoader};
-pub use resources_service::{ResourceData, ResourcesService};
 pub use resources_unpacker::{MARKER_FILE, ResourceRoots, ResourcesUnpacker};
 pub use unpack_policy::UnpackPolicy;
