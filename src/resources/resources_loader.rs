@@ -247,7 +247,7 @@ fn with_trailing_slash(base_path: &str) -> String {
     if base_path.ends_with('/') {
         base_path.to_owned()
     } else {
-        return format!("{base_path}/");
+        format!("{base_path}/")
     }
 }
 

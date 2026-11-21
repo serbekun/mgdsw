@@ -150,8 +150,8 @@ impl ResourcesUnpacker {
             fs::write(&marker, format!("{}\n", self.version))?;
         }
 
-        // The count is kept for parity with the Java implementation and for
-        // callers that will log it once a logger is wired up.
+        // The count is kept for callers that will log it once a logger is
+        // wired up.
         let _ = copied;
 
         Ok(!current)

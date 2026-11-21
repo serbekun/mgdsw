@@ -1,7 +1,6 @@
 //! Resource loading, caching and first-run unpacking.
 //!
-//! The module is a Rust port of the Java `com.serbekun.mgdsw.resources` package
-//! and keeps the same contract:
+//! The module has a single contract:
 //!
 //! - [`ResourcesBasePath`] is the single source of truth for resource directory
 //!   names and their unpack/cache policies;

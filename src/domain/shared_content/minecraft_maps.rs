@@ -103,8 +103,8 @@ impl MinecraftMaps {
 
     /// Lists `*.yaml` file names under `root` and strips the extension.
     ///
-    /// A missing or unreadable directory yields an empty list, matching the
-    /// Java implementation: a map store without content is valid.
+    /// A missing or unreadable directory yields an empty list: a map store
+    /// without content is valid.
     fn scan_slugs(root: &Path) -> Vec<String> {
         if !root.is_dir() {
             warn!(
