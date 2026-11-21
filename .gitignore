@@ -1,32 +1,14 @@
-# Gradle
-.gradle/
-build/
-target/
+# Rust
+/target/
 
-# IntelliJ IDEA
+# IDE and editor files
 .idea/
 *.iml
 *.ipr
 *.iws
-out/
-
-# Eclipse
-.project
-.classpath
-.settings/
-bin/
-
-# VS Code
 .vscode/
 
-# NetBeans
-nbproject/private/
-nbbuild/
-dist/
-nbdist/
-.nb-gradle/
-
-# OS and editor files
+# OS files
 .DS_Store
 Thumbs.db
 *.swp
