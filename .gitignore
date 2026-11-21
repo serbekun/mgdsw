@@ -35,3 +35,7 @@ Thumbs.db
 
 # Server runtime data
 data/
+
+# Added by cargo
+
+/target

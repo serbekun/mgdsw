@@ -17,6 +17,17 @@ repositories {
     mavenCentral()
 }
 
+sourceSets {
+    main {
+        java.srcDirs = ['java_src/main/java']
+        resources.srcDirs = ['java_src/main/resources']
+    }
+    test {
+        java.srcDirs = ['java_src/test/java']
+        resources.srcDirs = ['java_src/test/resources']
+    }
+}
+
 def generatedResourcesDir = layout.buildDirectory.dir('generated-resources')
 
 tasks.register('generateVersionProperties') {
