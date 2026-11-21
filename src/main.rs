@@ -6,18 +6,16 @@ mod resources;
 #[allow(dead_code)]
 mod services;
 
-use std::collections::HashMap;
 use std::process::ExitCode;
+use std::sync::Arc;
 
 use tracing::{error, info};
-use tracing_subscriber;
 
-use resources::{
-    DEFAULT_MAX_CACHEABLE_SIZE, ResourceRoots, ResourceType, ResourcesBasePath, ResourcesCache,
-    ResourcesLoader, ResourcesUnpacker,
-};
+use resources::{ResourceRoots, ResourcesLoader, ResourcesUnpacker};
 
+use crate::domain::shared_content::minecraft_maps::MinecraftMaps;
 use crate::http::init_http::init_http;
+use crate::services::shared_content::minecraft_maps_service::MinecraftMapsService;
 
 /// Runtime data directory, matching `cleanup.sh` and `config.default.yaml`.
 const DATA_DIR: &str = "data";
@@ -47,7 +45,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     unpack_resources(&roots)?;
 
-    let svr = init_http();
+    let minecraft_maps = Arc::new(MinecraftMaps::new(&roots.content_root));
+    let minecraft_maps_service = Arc::new(MinecraftMapsService::new(minecraft_maps));
+
+    let svr = init_http(minecraft_maps_service);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080").await?;
     info!("Listening on http://{}", listener.local_addr()?);
     axum::serve(listener, svr).await?;

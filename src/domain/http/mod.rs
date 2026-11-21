@@ -1,1 +1,3 @@
 pub mod api_v0_health_res;
+pub mod api_v0_shared_minecraft_maps_yaml_res;
+pub mod api_v0_shared_minecraft_maps_yaml_res_not_found;
