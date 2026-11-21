@@ -14,14 +14,14 @@ Maxim Games Discord Server Web Site. This will be a server for deploying a web s
 
 ## Command that usefully during developing
 
-For build final fat JAR use
+For build final fat server use
 ```bash
-./gradlew shadowjar
+cargo b
 ```
 
 For run tests use
 ```bash
-./gradlew test
+cargo test
 ```
 
 To clean the runtime `data/` directory use
@@ -38,11 +38,11 @@ The server recreates `data/` on the next start and unpacks the packaged template
 
 ## Requirements for start
 
-- JDK 25
+- installed latest rust version
 
-The build fat JAR is created under `build/libs/`.
+The server build is created under `target/debug/`.
 
-So for run server using fat jar use command. 
+So for run server  use command. 
 ```bash
-java -jar build/libs/mgdsw-pre-alpha-2026-10-19-all.jar
+./target/debug/mgdsw
 ```
