@@ -3,7 +3,8 @@ use std::sync::Arc;
 use axum::{Router, routing::get};
 
 use crate::http::handles::{
-    api_v0_health, api_v0_shared_minecraft_maps_list, api_v0_shared_minecraft_maps_yaml, api_v0_version,
+    api_v0_health, api_v0_shared_minecraft_maps_list, api_v0_shared_minecraft_maps_yaml,
+    api_v0_version,
 };
 use crate::services::shared_content::minecraft_maps_service::MinecraftMapsService;
 
