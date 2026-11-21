@@ -6,7 +6,6 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use tracing::info;
 
 use crate::domain::http::api_v0_shared_minecraft_maps_yaml_res_not_found::ApiV0SharedMinecraftMapsYamlResNotFound;
 use crate::services::shared_content::minecraft_maps_service::MinecraftMapsService;
