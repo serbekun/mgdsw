@@ -70,6 +70,7 @@ impl MinecraftMapsZips {
     }
 
     /// Alias describing explicitly that the result is a filesystem path.
+    #[allow(dead_code)]
     pub fn path_by_slug(&self, slug: &str) -> Option<PathBuf> {
         self.get_by_slug(slug)
     }
