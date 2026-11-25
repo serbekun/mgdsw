@@ -14,8 +14,10 @@ use tracing::{error, info};
 use resources::{ResourceRoots, ResourcesLoader, ResourcesUnpacker};
 
 use crate::domain::shared_content::minecraft_maps::MinecraftMaps;
+use crate::domain::shared_content::minecraft_maps_zips::MinecraftMapsZips;
 use crate::http::init_http::init_http;
 use crate::services::shared_content::minecraft_maps_service::MinecraftMapsService;
+use crate::services::shared_content::minecraft_maps_zips_service::MinecraftMapsZipsService;
 
 /// Runtime data directory, matching `cleanup.sh` and `config.default.yaml`.
 const DATA_DIR: &str = "data";
@@ -47,8 +49,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     let minecraft_maps = Arc::new(MinecraftMaps::new(&roots.content_root));
     let minecraft_maps_service = Arc::new(MinecraftMapsService::new(minecraft_maps));
+    let minecraft_maps_zips = Arc::new(MinecraftMapsZips::new(&roots.shared_root));
+    let minecraft_maps_zips_service = Arc::new(MinecraftMapsZipsService::new(minecraft_maps_zips));
 
-    let svr = init_http(minecraft_maps_service);
+    let svr = init_http(minecraft_maps_service, minecraft_maps_zips_service);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080").await?;
     info!("Listening on http://{}", listener.local_addr()?);
     axum::serve(listener, svr).await?;
