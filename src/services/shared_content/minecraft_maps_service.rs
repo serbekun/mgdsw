@@ -87,7 +87,7 @@ impl MinecraftMapsService {
 
         // If the map is not published, it must not be visible from outside.
         if !minecraft_map.published() {
-            info!("Minecraft map: {slug} not found or not published");
+            info!("Minecraft map: '{slug}' not published");
             return None;
         }
 
