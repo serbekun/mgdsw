@@ -161,7 +161,7 @@ mod tests {
 
     fn tempfile_dir() -> TempDir {
         let path = std::env::temp_dir().join(format!(
-            "mgdsw-minecraft-maps-zips-{}-{}",
+            "mgdsc-minecraft-maps-zips-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

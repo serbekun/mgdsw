@@ -148,7 +148,7 @@ mod tests {
     impl TempDir {
         fn new() -> Self {
             let unique = format!(
-                "mgdsw-minecraft-maps-{}-{}",
+                "mgdsc-minecraft-maps-{}-{}",
                 std::process::id(),
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
