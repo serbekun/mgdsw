@@ -1,4 +1,5 @@
 mod build_info;
+mod config;
 mod domain;
 mod http;
 #[allow(dead_code)]
@@ -13,14 +14,12 @@ use tracing::{error, info};
 
 use resources::{ResourceRoots, ResourcesLoader, ResourcesUnpacker};
 
+use crate::config::ConfigLoader;
 use crate::domain::shared_content::minecraft_maps::MinecraftMaps;
 use crate::domain::shared_content::minecraft_maps_zips::MinecraftMapsZips;
 use crate::http::init_http::init_http;
 use crate::services::shared_content::minecraft_maps_service::MinecraftMapsService;
 use crate::services::shared_content::minecraft_maps_zips_service::MinecraftMapsZipsService;
-
-/// Runtime data directory, matching `cleanup.sh` and `config.default.yaml`.
-const DATA_DIR: &str = "data";
 
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -38,11 +37,13 @@ async fn main() -> ExitCode {
 async fn run() -> Result<(), Box<dyn std::error::Error>> {
     info!("mgdsc: {}", build_info::version());
 
+    let config = ConfigLoader::new().load_from_env()?;
+
     let roots = ResourceRoots::new(
-        format!("{DATA_DIR}/static"),
-        format!("{DATA_DIR}/content"),
-        format!("{DATA_DIR}/shared"),
-        format!("{DATA_DIR}/examples"),
+        &config.resources.static_base_path,
+        &config.resources.content_base_path,
+        &config.resources.shared_base_path,
+        &config.resources.examples_base_path,
     );
 
     unpack_resources(&roots)?;
@@ -53,7 +54,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let minecraft_maps_zips_service = Arc::new(MinecraftMapsZipsService::new(minecraft_maps_zips));
 
     let svr = init_http(minecraft_maps_service, minecraft_maps_zips_service);
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8080").await?;
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", config.http.port)).await?;
     info!("Listening on http://{}", listener.local_addr()?);
     axum::serve(listener, svr).await?;
 
