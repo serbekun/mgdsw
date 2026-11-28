@@ -1,9 +1,5 @@
 # mgdsc
 
-<div align="center">
-  <img src="assets/serbekunmgdsw.png" alt="mgdsc banner" width="300">
-</div>
-
 Maxim Games Discord Server Core. The Rust core server of the Maxim Games Discord Server (mgds) ecosystem: it holds all information about the community (Minecraft servers, maps, mods) and serves it through an HTTP API. It does nothing else. Everything that shows this information, such as the website or a Discord bot, is a client of this API.
 
 The server is built with [axum](https://github.com/tokio-rs/axum) and [tokio](https://tokio.rs/). Static templates and examples are embedded into the binary with [rust-embed](https://github.com/pyrossh/rust-embed) and unpacked into `data/` on first start, so a single executable is enough to run the core.
