@@ -29,14 +29,14 @@ async fn main() -> ExitCode {
     match run().await {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
-            error!("mgdsw: {error}");
+            error!("mgdsc: {error}");
             ExitCode::FAILURE
         }
     }
 }
 
 async fn run() -> Result<(), Box<dyn std::error::Error>> {
-    info!("mgdsw: {}", build_info::version());
+    info!("mgdsc: {}", build_info::version());
 
     let roots = ResourceRoots::new(
         format!("{DATA_DIR}/static"),

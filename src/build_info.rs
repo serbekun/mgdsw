@@ -1,4 +1,4 @@
-pub const VERSION: &str = match option_env!("MGDSW_BUILD_VERSION") {
+pub const VERSION: &str = match option_env!("MGDSC_BUILD_VERSION") {
     Some(v) => v,
     None => env!("CARGO_PKG_VERSION"),
 };
