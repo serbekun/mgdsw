@@ -1,0 +1,12 @@
+http:
+  port: 8080
+resources:
+  maxCacheableSize: 104857600
+  # Change to /srv/mgdsc/data/static/ on prod.
+  staticBasePath: "data/static/"
+  # Change to /srv/mgdsc/data/content/ on prod.
+  contentBasePath: "data/content/"
+  # Change to /srv/mgdsc/data/shared/ on prod.
+  sharedBasePath: "data/shared/"
+  # Change to /srv/mgdsc/data/examples/ on prod.
+  examplesBasePath: "data/examples/"

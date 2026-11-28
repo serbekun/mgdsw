@@ -48,7 +48,7 @@ The binary is written to `target/release/mgdsc` (or `target/debug/mgdsc` for a d
 ./target/release/mgdsc
 ```
 
-On startup the server listens on `http://127.0.0.1:8080`. The listen address is currently configured in `src/main.rs`. Because it listens only on the loopback interface, the server is meant to run behind a reverse proxy such as nginx.
+On startup the server listens on `http://127.0.0.1:8080`, using the config embedded in the binary (`src/config/config.default.yaml`). To use another file, set `MGDSC_CONFIG` to its path; if the file does not exist, the embedded defaults are used again. The config sets the HTTP port and the static, content, shared and examples roots. The host is fixed to the loopback interface, so the server is meant to run behind a reverse proxy such as nginx.
 
 The proxy is also required for static files and map archives. The core itself serves only `/api/v0/*`: templates and assets unpacked into `data/static/` are meant to be served by the proxy, and the map ZIP endpoint answers with an `X-Accel-Redirect` header that nginx turns into the file response without copying the archive through Rust.
 
